@@ -18,10 +18,13 @@ TYPE=$(jq -r '.types[0].type.name' "$DATA_FILE")
 # Explicitly using variables with proper formatting
 formatted_height="$HEIGHT"
 formatted_weight="$WEIGHT"
+type="$TYPE"
+name="$NAME"
+
 
 # Format and print the output using the exact expected structure
-OUTPUT="$NAME is of type $TYPE, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
-echo "$OUTPUT" | sed 's/^./\U&/'  # Capitalize the first letter
+OUTPUT="$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
+echo "$OUTPUT" | sed 's/^./\U&/'
 
 # Optional: Save the output to a file
 echo "$OUTPUT" | sed 's/^./\U&/' > pokemon_info.txt
