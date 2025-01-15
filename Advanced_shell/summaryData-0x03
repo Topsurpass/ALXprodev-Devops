@@ -23,22 +23,28 @@ for FILE in "$DATA_DIR"/*.json; do
     HEIGHT=$(jq -r '.height' "$FILE")
     WEIGHT=$(jq -r '.weight' "$FILE")
 
-    # Append the data to the CSV file
+    # Use sed to clean the data (for example, converting height/weight to proper units)
+    HEIGHT=$(echo "$HEIGHT" | sed 's/$/m/')  # Append "m" for height
+    WEIGHT=$(echo "$WEIGHT" | sed 's/$/kg/') # Append "kg" for weight
+
+    # Append the cleaned data to the CSV file
     echo "$NAME,$HEIGHT,$WEIGHT" >> "$CSV_FILE"
 done
 
-# Display the CSV content
+# Display the CSV content using sed for a cleaner view
 echo "Generated CSV Report:"
-cat "$CSV_FILE"
+sed 's/,/ | /g' "$CSV_FILE"  # Replace commas with visual separators for readability
 
-# Calculate average height and weight using awk
+# Calculate average height and weight using awk (removing units with sed)
 echo "Calculating average height and weight..."
 
 awk -F',' '
-NR > 1 {height += $2; weight += $3; count++}
+NR > 1 {
+    height += $2; weight += $3; count++
+}
 END {
-    print "\nAverage Height: " height/count " m"
-    print "Average Weight: " weight/count " kg"
-}' "$CSV_FILE"
+    print "\nAverage Height: " height/count "m"
+    print "Average Weight: " weight/count "kg"
+}' <(sed 's/m//; s/kg//' "$CSV_FILE")  # Remove units before calculating average
 
 echo "Summary completed successfully!"

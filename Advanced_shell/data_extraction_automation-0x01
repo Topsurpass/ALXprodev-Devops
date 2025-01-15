@@ -11,13 +11,17 @@ fi
 
 # Extract data using jq and format with awk and sed
 NAME=$(jq -r '.name' "$DATA_FILE")
-HEIGHT=$(jq -r '.height' "$DATA_FILE" | awk '{print $1 / 10}')  # Convert decimetres to metres
-WEIGHT=$(jq -r '.weight' "$DATA_FILE" | awk '{print $1 / 10}')  # Convert hectograms to kg
+HEIGHT=$(jq -r '.height' "$DATA_FILE" | awk '{printf "%.1f", $1 / 10}')  # Convert decimetres to metres
+WEIGHT=$(jq -r '.weight' "$DATA_FILE" | awk '{printf "%.1f", $1 / 10}')  # Convert hectograms to kg
 TYPE=$(jq -r '.types[0].type.name' "$DATA_FILE")
 
-# Format and print the output using sed for styling
-OUTPUT="$NAME is of type $TYPE, weighs ${WEIGHT}kg, and is ${HEIGHT}m tall."
-echo "$OUTPUT" | sed 's/^./\U&/'
+# Explicitly using variables with proper formatting
+formatted_height="$HEIGHT"
+formatted_weight="$WEIGHT"
+
+# Format and print the output using the exact expected structure
+OUTPUT="$NAME is of type $TYPE, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
+echo "$OUTPUT" | sed 's/^./\U&/'  # Capitalize the first letter
 
 # Optional: Save the output to a file
 echo "$OUTPUT" | sed 's/^./\U&/' > pokemon_info.txt

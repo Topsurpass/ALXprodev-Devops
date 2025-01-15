@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# List of Pokémon for parallel processing
 POKEMON_LIST=("Bulbasaur" "Ivysaur" "Venusaur" "Charmander" "Charmeleon" "InvalidPokemon")
 
 # Directory to save the data files
@@ -8,11 +9,13 @@ DATA_DIR="pokemon_data"
 # Create the data directory if it doesn't exist
 mkdir -p "$DATA_DIR"
 
+# Maximum number of retries
 MAX_RETRIES=3
 
 # Delay to avoid rate-limiting issues
 DELAY=1
 
+# Function to fetch Pokémon data with error handling
 fetch_pokemon_data() {
     POKEMON=$1
     POKEMON_LOWER=$(echo "$POKEMON" | awk '{print tolower($0)}')
@@ -28,7 +31,6 @@ fetch_pokemon_data() {
         RESPONSE=$(curl -s -w "%{http_code}" -o "$DATA_FILE" "https://pokeapi.co/api/v2/pokemon/$POKEMON_LOWER")
         HTTP_STATUS="${RESPONSE:(-3)}"
 
-        # Success case
         if [ "$HTTP_STATUS" -eq 200 ]; then
             echo "✅ Data for $POKEMON has been saved to $DATA_FILE."
             SUCCESS=true
@@ -51,12 +53,19 @@ fetch_pokemon_data() {
     fi
 }
 
-# Run all Pokémon fetch operations in the background
+# Fetch all Pokémon in parallel using background processes
 for POKEMON in "${POKEMON_LIST[@]}"; do
     fetch_pokemon_data "$POKEMON" &
 done
 
-# Detach the entire script from the terminal and run in the background
-disown -a
+# Wait for all background processes to finish
+echo "⏳ Waiting for all background tasks to complete..."
+wait
 
-echo "✅ Data fetching has started in the background! Check the $DATA_DIR directory later for results."
+# Check if any jobs are still running
+if jobs -p | grep -q .; then
+    echo "⚠️ Some jobs are still running. Attempting to terminate them..."
+    kill $(jobs -p)
+fi
+
+echo "✅ All tasks have been completed!"
