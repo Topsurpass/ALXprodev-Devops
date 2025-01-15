@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Directory containing the Pokémon data
+DATA_DIR="pokemon_data"
+
+# Output CSV file
+CSV_FILE="pokemon_summary.csv"
+
+# Check if jq is installed, if not, prompt the user to install it
+if ! command -v jq &> /dev/null; then
+    echo "Error: 'jq' is not installed. Please install it using:"
+    echo "sudo apt update && sudo apt install jq"
+    exit 1
+fi
+
+# Create the CSV file and add the header
+echo "Name,Height,Weight" > "$CSV_FILE"
+
+# Process each JSON file in the directory
+for FILE in "$DATA_DIR"/*.json; do
+    # Extract data using jq
+    NAME=$(jq -r '.name' "$FILE")
+    HEIGHT=$(jq -r '.height' "$FILE")
+    WEIGHT=$(jq -r '.weight' "$FILE")
+
+    # Append the data to the CSV file
+    echo "$NAME,$HEIGHT,$WEIGHT" >> "$CSV_FILE"
+done
+
+# Display the CSV content
+echo "Generated CSV Report:"
+cat "$CSV_FILE"
+
+# Calculate average height and weight using awk
+echo "Calculating average height and weight..."
+
+awk -F',' '
+NR > 1 {height += $2; weight += $3; count++}
+END {
+    print "\nAverage Height: " height/count " m"
+    print "Average Weight: " weight/count " kg"
+}' "$CSV_FILE"
+
+echo "Summary completed successfully!"

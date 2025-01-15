@@ -1,0 +1,62 @@
+#!/bin/bash
+
+POKEMON_LIST=("Bulbasaur" "Ivysaur" "Venusaur" "Charmander" "Charmeleon" "InvalidPokemon")
+
+# Directory to save the data files
+DATA_DIR="pokemon_data"
+
+# Create the data directory if it doesn't exist
+mkdir -p "$DATA_DIR"
+
+MAX_RETRIES=3
+
+# Delay to avoid rate-limiting issues
+DELAY=1
+
+fetch_pokemon_data() {
+    POKEMON=$1
+    POKEMON_LOWER=$(echo "$POKEMON" | awk '{print tolower($0)}')
+    DATA_FILE="$DATA_DIR/${POKEMON_LOWER}.json"
+
+    echo "Fetching data for $POKEMON in the background..."
+
+    RETRY_COUNT=0
+    SUCCESS=false
+
+    # Retry logic
+    while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; do
+        RESPONSE=$(curl -s -w "%{http_code}" -o "$DATA_FILE" "https://pokeapi.co/api/v2/pokemon/$POKEMON_LOWER")
+        HTTP_STATUS="${RESPONSE:(-3)}"
+
+        # Success case
+        if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Data for $POKEMON has been saved to $DATA_FILE."
+            SUCCESS=true
+            break
+        elif [ "$HTTP_STATUS" -eq 404 ]; then
+            echo "❌ Error: $POKEMON not found. Skipping..."
+            echo "$(date): Error - $POKEMON not found (HTTP $HTTP_STATUS)" >> "$DATA_DIR/errors.txt"
+            rm -f "$DATA_FILE"
+            break
+        else
+            ((RETRY_COUNT++))
+            echo "⚠️ Attempt $RETRY_COUNT failed for $POKEMON. Retrying..."
+            sleep "$DELAY"
+        fi
+    done
+
+    if [ "$SUCCESS" = false ] && [ "$HTTP_STATUS" != "404" ]; then
+        echo "❌ Failed to fetch data for $POKEMON after $MAX_RETRIES attempts."
+        echo "$(date): Failed to fetch data for $POKEMON after $MAX_RETRIES attempts." >> "$DATA_DIR/errors.txt"
+    fi
+}
+
+# Run all Pokémon fetch operations in the background
+for POKEMON in "${POKEMON_LIST[@]}"; do
+    fetch_pokemon_data "$POKEMON" &
+done
+
+# Detach the entire script from the terminal and run in the background
+disown -a
+
+echo "✅ Data fetching has started in the background! Check the $DATA_DIR directory later for results."
